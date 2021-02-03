@@ -85,6 +85,7 @@ from .relationship_tools import get_mutual_following
 from .database_engine import get_database
 from .text_analytics import text_analysis
 from .text_analytics import yandex_supported_languages
+from .text_analytics import langdetect_supported_languages
 from .browser import set_selenium_local_session
 from .browser import close_browser
 from .file_manager import get_workspace
@@ -5254,6 +5255,40 @@ class InstaPy:
         else:
             # turn off Yandex service if not enabled or wrongly configured
             Settings.yandex_config.update(enabled=False)
+
+
+    def set_use_langdetect(
+        self, 
+        enabled: bool = False,
+        match_language: bool = False,
+        language_code: str = "en",
+    ):
+
+        """ Set langdetect library configuration """
+        if enabled:
+            Settings.langdetect_config.update(enabled=enabled)
+
+            if match_language is True and language_code:
+                supported_langs = langdetect_supported_languages()
+
+                if not supported_langs or language_code.lower() not in supported_langs:
+                    msg = (
+                            "Oh no! Failed to get the list of supported"
+                            " languages by langdetect library :("
+                            if not supported_langs
+                            else "Oh no! The language with '{}' code is not"
+                            " supported by langdetect :/".format(language_code)
+                    )
+                    self.logger.info("{}\t~text language won't be matched".format(msg))
+                    match_language = False
+
+            Settings.langdetect_config.update(
+                match_language=match_language if language_code else False,
+                language_code=language_code.lower() if language_code else None,
+            )
+        else:
+            Settings.langdetect_config.update(enabled=False)
+
 
     def interact_by_comments(
         self,

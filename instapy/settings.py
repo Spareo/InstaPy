@@ -54,6 +54,7 @@ class Settings:
     # store configuration of text analytics
     meaningcloud_config = {}
     yandex_config = {}
+    langdetect_config = {}
 
     # store the parameter for global access
     show_logs = None

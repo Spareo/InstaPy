@@ -9,6 +9,7 @@ Official Documentations:
 import json
 import requests
 from meaningcloud import SentimentResponse, SentimentRequest
+from langdetect import detect 
 
 from .util import deform_emojis
 from .util import has_any_letters
@@ -25,6 +26,7 @@ YANDEX_HOST = "https://translate.yandex.net"
 
 YANDEX_CONFIG = Settings.yandex_config
 MEANINGCLOUD_CONFIG = Settings.meaningcloud_config
+LANGDETECT_CONFIG = Settings.langdetect_config
 
 YANDEX_FAILURE_MSG = "Oh no! Yandex Translate failed :/"
 MEANINGCLOUD_FAILURE_MSG = "Oh no! MeaningCloud Sentiment Analysis failed :/"
@@ -54,6 +56,8 @@ def text_analysis(text, text_type, logger):
             YANDEX_CONFIG["match_language"] is not True
             and (not MEANINGCLOUD_CONFIG or MEANINGCLOUD_CONFIG["enabled"] is not True)
         )
+        or not LANGDETECT_CONFIG
+        or LANGDETECT_CONFIG["enabled"] is not True
     ):
 
         # No analysis will be held
@@ -61,10 +65,13 @@ def text_analysis(text, text_type, logger):
         logger.info('{} text: "{}"'.format(text_type_c, text.encode("utf-8")))
         return None
 
-    if YANDEX_CONFIG["match_language"] is True:
+    if YANDEX_CONFIG["match_language"] is True or LANGDETECT_CONFIG["match_language"] is True:
         # Language detection & match will take place
         if has_any_letters(emojiless_text):
-            language_of_text = detect_language(emojiless_text)
+            if YANDEX_CONFIG["match_language"]:
+                language_of_text = detect_language(emojiless_text)
+            elif LANGDETECT_CONFIG["match_language"]:
+                language_of_text = langdetect_language(emojiless_text)
         else:
             # text contains only emojis
             language_of_text = "en"
@@ -78,7 +85,7 @@ def text_analysis(text, text_type, logger):
         )
         text_is_printed = True
 
-        if language_of_text and YANDEX_CONFIG["language_code"] != language_of_text:
+        if language_of_text and YANDEX_CONFIG["language_code"] != language_of_text and LANGDETECT_CONFIG["language_code"] != language_of_text:
             logger.info(
                 "{}\t~language of the text is '{}'".format(inap_msg, language_of_text)
             )
@@ -284,6 +291,17 @@ def sentiment_analysis(text, language_of_text, logger):
         return None
 
 
+def langdetect_language(text):
+    """
+    Detects the language of the specified text
+    using the langdetect library
+
+    :return:
+        String with the language of text or None
+    """
+    detected_language = detect(text)
+    return detected_language if detected_language != 'unknown' else None
+
 def detect_language(text):
     """
     Detect the language of the specified text
@@ -321,6 +339,23 @@ def detect_language(text):
     else:
         return None
 
+
+def langdetect_supported_languages(language_code="en"):
+    """
+    Get the list of detectable languages supported by the langdetect
+    library
+    
+    :return:
+        list object containing language codes or None
+    """
+
+    return ["af", "ar", "bg", "bn", "ca", "cs", "cy", "da", 
+            "de", "el", "en", "es", "et", "fa", "fi", "fr", 
+            "gu", "he", "hi", "hr", "hu", "id", "it", "ja", 
+            "kn", "ko", "lt", "lv", "mk", "ml", "mr", "ne", 
+            "nl", "no", "pa", "pl", "pt", "ro", "ru", "sk", 
+            "sl", "so", "sq", "sv", "sw", "ta", "te", "th", 
+            "tl", "tr", "uk", "ur", "vi", "zh-cn", "zh-tw"]
 
 def yandex_supported_languages(language_code="en"):
     """
